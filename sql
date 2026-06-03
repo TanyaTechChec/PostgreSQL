@@ -137,3 +137,94 @@ phone_number =null,
 user_area = null,
 email = ''
 where email = '';
+
+----Аналитика вакансий на сайте
+
+SELECT
+    CASE
+        WHEN s.schedule_id = 'flexible' THEN 'Гибкий график'
+        WHEN s.schedule_id = 'fullDay' THEN 'Полный день'
+        WHEN s.schedule_id = 'shift' THEN 'Сменный график'
+        WHEN s.schedule_id = 'remote' THEN 'Удалённо'
+        ELSE 'Не указано'
+    END AS "Формат работы",
+
+    COUNT(DISTINCT v.id) AS "Число вакансий"
+
+FROM app_schema.vw_vacancy v
+JOIN app_schema.vw_vacancy_schedule s
+    ON v.id = s.vw_vacancy_id
+
+WHERE v.archived = false
+
+GROUP BY
+    CASE
+        WHEN s.schedule_id = 'flexible' THEN 'Гибкий график'
+        WHEN s.schedule_id = 'fullDay' THEN 'Полный день'
+        WHEN s.schedule_id = 'shift' THEN 'Сменный график'
+        WHEN s.schedule_id = 'remote' THEN 'Удалённо'
+        ELSE 'Не указано'
+    END
+
+ORDER BY
+    COUNT(DISTINCT v.id) DESC;
+
+
+
+
+
+SELECT
+    d.profarea_name AS "Профобласть",
+    d.role_name AS "Роль",
+
+    COUNT(DISTINCT v.id) AS "Число вакансий",
+
+    COUNT(DISTINCT CASE 
+        WHEN v."experience.id" = 'noExperience'
+        THEN v.id 
+    END) AS "Без опыта",
+
+    COUNT(DISTINCT CASE 
+        WHEN v."experience.id" <> 'noExperience'
+        THEN v.id 
+    END) AS "Опыт от года"
+
+FROM app_schema.vw_vacancy v
+JOIN app_schema.dict_profarea_to_role_mapping d
+    ON CAST(d.role_id AS text) = ANY(v.professional_roles_id)
+
+WHERE v.archived = false
+
+GROUP BY
+    d.profarea_name,
+    d.role_name
+
+ORDER BY
+    COUNT(DISTINCT v.id) DESC;
+
+
+
+SELECT
+    COUNT(DISTINCT v.id) AS "Стажировки"
+FROM app_schema.vw_vacancy v
+WHERE v.internship = true
+  AND v.archived = false;
+
+
+
+SELECT
+    CASE
+        WHEN v."experience.id" = 'noExperience' THEN 'Нет опыта'
+        WHEN v."experience.id" = 'between1And3' THEN 'От 1 года до 3 лет'
+        WHEN v."experience.id" = 'between3And6' THEN 'От 3 до 6 лет'
+        WHEN v."experience.id" = 'moreThan6' THEN 'Более 6 лет'
+        ELSE 'Не указано'
+    END AS "Опыт",
+
+    COUNT(DISTINCT v.id) AS "Число вакансий"
+
+FROM app_schema.vw_vacancy v
+WHERE v.archived = false
+
+GROUP BY 1
+ORDER BY 2 DESC;
